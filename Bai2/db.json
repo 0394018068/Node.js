@@ -1,0 +1,65 @@
+{
+  "posts": [
+    {
+      "id": "1",
+      "title": "a title",
+      "views": 100,
+      "isDeleted": true
+    },
+    {
+      "id": "2",
+      "title": "another title",
+      "views": 200,
+      "isDeleted": false
+    },
+    {
+      "id": "3",
+      "title": "Sách",
+      "views": "500",
+      "isDeleted": true
+    },
+    {
+      "id": "4",
+      "title": "IT Coder",
+      "views": "",
+      "isDeleted": true
+    },
+    {
+      "id": "5",
+      "title": "Báo chí",
+      "views": "1000",
+      "isDeleted": false
+    },
+    {
+      "id": "6",
+      "title": "long",
+      "views": "100",
+      "isDeleted": false
+    }
+  ],
+  "comments": [
+    {
+      "id": "1",
+      "text": "a comment about post 1",
+      "postId": "1"
+    },
+    {
+      "id": "2",
+      "text": "another comment about post 1",
+      "postId": "1"
+    },
+    {
+      "id": "43df",
+      "postId": "2",
+      "text": "Oke hehehe"
+    },
+    {
+      "id": "41aa",
+      "postId": "4",
+      "text": "Chào bạn"
+    }
+  ],
+  "profile": {
+    "name": "typicode"
+  }
+}

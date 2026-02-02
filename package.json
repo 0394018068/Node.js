@@ -1,0 +1,23 @@
+{
+  "name": "J2EE",
+  "version": "1.0.0",
+  "description": "Lê Thiên Long - 2280601758",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0394018068/J2EE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/0394018068/J2EE/issues"
+  },
+  "homepage": "https://github.com/0394018068/J2EE#readme",
+  "dependencies": {
+    "json-server": "^1.0.0-beta.5"
+  }
+}

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bai2</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Quản Lý Bài Viết</h1>
+
+    <div class="split-container">
+        
+        <div class="main-content">
+            
+            <div class="glass-card">
+                <h3>Thông tin bài viết</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="hidden" id="postId">
+                    <input type="text" id="postTitle" placeholder="Tiêu đề bài viết..." style="flex: 2;">
+                    <input type="number" id="postViews" placeholder="Views" style="flex: 1;">
+                </div>
+                <div style="margin-top: 10px; text-align: right;">
+                    <button class="btn-ghost" onclick="resetPostForm()">Hủy</button>
+                    <button class="btn-primary" onclick="savePost()">Lưu thay đổi</button>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h3 style="color: #4a90e2;">Danh sách hiển thị</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="10%">ID</th>
+                            <th width="40%">Tiêu đề</th>
+                            <th width="15%">Views</th>
+                            <th width="35%">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activePostData">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="commentSection" class="glass-card" style="display:none; border: 2px solid #667eea;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 id="commentHeader" style="margin:0;">💬 Bình luận</h3>
+                    <button class="btn-ghost btn-sm" onclick="closeComments()">✕ Đóng</button>
+                </div>
+                <hr style="border: 0; border-top: 1px solid rgba(0,0,0,0.1); margin: 15px 0;">
+                
+                <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                    <input type="hidden" id="currentPostId">
+                    <input type="hidden" id="commentId">
+                    <input type="text" id="commentText" placeholder="Viết bình luận..." style="flex:1;">
+                    <button class="btn-primary" onclick="saveComment()">Gửi</button>
+                </div>
+                <ul id="commentList"></ul>
+            </div>
+        </div>
+
+        <div class="trash-content">
+            <div class="glass-card" style="background: rgba(255, 230, 230, 0.5);">
+                <h3 style="color: #e74c3c;">🗑️ Đã xóa gần đây</h3>
+                <p style="font-size: 0.8rem; color: #777;">Các bài viết bị xóa mềm sẽ xuất hiện ở đây.</p>
+                <div id="trashData">
+                    </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = 'http://localhost:3000';
+
+        // --- LOGIC POST ---
+        function loadPosts() {
+            fetch(API + '/posts')
+                .then(res => res.json())
+                .then(posts => {
+                    let activeHtml = '';
+                    let trashHtml = '';
+                    
+                    posts.forEach(p => {
+                        const isDel = p.isDeleted === true;
+
+                        if (!isDel) {
+                            // RENDER VÀO BẢNG CHÍNH
+                            activeHtml += `
+                                <tr>
+                                    <td>#${p.id}</td>
+                                    <td><strong>${p.title}</strong></td>
+                                    <td>${p.views}</td>
+                                    <td>
+                                        <button class="btn-ghost btn-sm" onclick="editPost('${p.id}')">✏️</button>
+                                        <button class="btn-danger btn-sm" onclick="softDeletePost('${p.id}', false)">🗑️</button>
+                                        <button class="btn-primary btn-sm" onclick="showComments('${p.id}')">💬</button>
+                                    </td>
+                                </tr>
+                            `;
+                        } else {
+                            // RENDER VÀO THÙNG RÁC
+                            trashHtml += `
+                                <div class="trash-item">
+                                    <div class="trash-title">${p.title}</div>
+                                    <div class="trash-info">ID: #${p.id} • Views: ${p.views}</div>
+                                    <button class="btn-restore" onclick="softDeletePost('${p.id}', true)">♻️ Khôi phục</button>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // Cập nhật DOM cho 2 vùng riêng biệt
+                    document.getElementById('activePostData').innerHTML = activeHtml || '<tr><td colspan="4" style="text-align:center">Không có bài viết nào</td></tr>';
+                    
+                    document.getElementById('trashData').innerHTML = trashHtml || '<div style="text-align:center; color:#999; padding:20px;">Thùng rác trống</div>';
+                });
+        }
+
+        // Logic Save/Edit không đổi, chỉ thay đổi nơi render
+        function savePost() {
+            const id = document.getElementById('postId').value;
+            const title = document.getElementById('postTitle').value;
+            const views = document.getElementById('postViews').value;
+
+            if (!title) return alert('Vui lòng nhập tiêu đề!');
+
+            if (id) {
+                // UPDATE
+                fetch(`${API}/posts/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, views })
+                }).then(() => {
+                    resetPostForm();
+                    loadPosts();
+                });
+            } else {
+                // CREATE
+                fetch(API + '/posts')
+                    .then(res => res.json())
+                    .then(posts => {
+                        const maxId = posts.length > 0 ? Math.max(...posts.map(p => Number(p.id))) : 0;
+                        const newId = (maxId + 1).toString();
+
+                        return fetch(API + '/posts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: newId, title, views, isDeleted: false })
+                        });
+                    })
+                    .then(() => {
+                        resetPostForm();
+                        loadPosts();
+                    });
+            }
+        }
+
+        function editPost(id) {
+            fetch(`${API}/posts/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('postId').value = data.id;
+                    document.getElementById('postTitle').value = data.title;
+                    document.getElementById('postViews').value = data.views;
+                    document.getElementById('postTitle').focus();
+                });
+        }
+
+        // Hàm này xử lý cả Xóa mềm và Khôi phục
+        // currentIsDeleted = false -> Đang ở bảng chính -> Cần set thành true (Xóa)
+        // currentIsDeleted = true -> Đang ở thùng rác -> Cần set thành false (Khôi phục)
+        function softDeletePost(id, currentIsDeleted) {
+            fetch(`${API}/posts/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isDeleted: !currentIsDeleted })
+            }).then(() => loadPosts());
+        }
+
+        function resetPostForm() {
+            document.getElementById('postId').value = '';
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postViews').value = '';
+        }
+
+        // --- LOGIC COMMENT ---
+        function showComments(postId) {
+            document.getElementById('commentSection').style.display = 'block';
+            document.getElementById('currentPostId').value = postId;
+            document.getElementById('commentHeader').innerText = "💬 Bình luận bài #" + postId;
+            document.getElementById('commentSection').scrollIntoView({ behavior: 'smooth' });
+            loadCommentList(postId);
+        }
+
+        function loadCommentList(postId) {
+            fetch(`${API}/comments?postId=${postId}`)
+                .then(res => res.json())
+                .then(comments => {
+                    let html = '';
+                    if (comments.length === 0) html = '<li style="justify-content:center; color:#999;">Chưa có bình luận.</li>';
+                    else {
+                        comments.forEach(c => {
+                            html += `
+                                <li>
+                                    <span>${c.text}</span>
+                                    <div>
+                                        <a href="#" style="color:#667eea; text-decoration:none; margin-right:5px;" onclick="editComment('${c.id}')">Sửa</a>
+                                        <a href="#" style="color:#ff5f6d; text-decoration:none;" onclick="deleteComment('${c.id}', '${postId}')">Xóa</a>
+                                    </div>
+                                </li>`;
+                        });
+                    }
+                    document.getElementById('commentList').innerHTML = html;
+                });
+        }
+
+        function saveComment() {
+            const id = document.getElementById('commentId').value;
+            const text = document.getElementById('commentText').value;
+            const postId = document.getElementById('currentPostId').value;
+            if(!text) return;
+
+            const method = id ? 'PATCH' : 'POST';
+            const url = id ? `${API}/comments/${id}` : `${API}/comments`;
+            const body = id ? { text } : { postId, text };
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(() => {
+                document.getElementById('commentId').value = '';
+                document.getElementById('commentText').value = '';
+                loadCommentList(postId);
+            });
+        }
+
+        function editComment(id) {
+            fetch(`${API}/comments/${id}`).then(r => r.json()).then(d => {
+                document.getElementById('commentId').value = d.id;
+                document.getElementById('commentText').value = d.text;
+                document.getElementById('commentText').focus();
+            });
+        }
+
+        function deleteComment(id, postId) {
+            if(confirm('Xóa bình luận?')) fetch(`${API}/comments/${id}`, { method: 'DELETE' }).then(() => loadCommentList(postId));
+        }
+        function closeComments() { document.getElementById('commentSection').style.display = 'none'; }
+
+        // Start
+        loadPosts();
+    </script>
+</body>
+</html>
